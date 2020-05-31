@@ -1,27 +1,28 @@
-function [T, units] = createDataTable(s)
-% createDataTable takes a struct array (from readfitraw) and returns a
-% TimeTable with fixed times, properly formatted data, and NaNs. All data
-% is numeric.
+function [T, units] = processData(raw)
+% processData takes a struct array (from readfitraw) and returns a
+% TimeTable with all of the data, and NaN where necessary. All data is
+% numeric.
 
 % number of messages
-N = numel(s);
+N = numel(raw);
 
 % get list of fields
-fields = unique([s.fields]);
+fields = unique([raw.fields]);
 
 % empty data structures to be filled in
 units = cell(1,numel(fields));
 data = nan(N,numel(fields));
 
 for i=1:N
+    message = raw(i);
     
     % number of fields
-    n = numel(s(i).fields);
+    n = numel(message.fields);
     
     for j=1:n
-        f = s(i).fields{j};
-        u = s(i).units{j};
-        v = s(i).values{j};
+        f = message.fields{j};
+        u = message.units{j};
+        v = message.values{j};
         
         col = find(strcmp(f,fields));
         
@@ -29,7 +30,7 @@ for i=1:N
         if isempty(units{col})
             units{col} = u;
         else
-            assert(strcmp(units(col),u),'Mismatched units: %s %s i=%d',u,units{col},i)
+            assert(strcmp(units{col},u),'Mismatched units: %s %s i=%d',u,units{col},i)
         end
         
         % fill data

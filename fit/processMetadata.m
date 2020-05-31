@@ -36,16 +36,17 @@ for i=1:numel(metadata)
             end
             
         case 'activity'
-            % Guaranteed to be in every activity .fit file.
+            % Guaranteed to be in every activity .fit file. Since only one
+            % session per activity is supported, most of this information
+            % will come from the session message instead.
             for j=1:numel(m.fields)
                 switch(m.fields{j})
-                    case 'local_timestamp'
                     case 'num_sessions'
                         assert(m.values{j} == 1,'File must have exactly one session');
+                    case 'timestamp'
+                    case 'local_timestamp'
+                    case 'total_timer_time'
                     case 'type'
-                        % Handled by session message
-                        % fit_profile.hpp/FIT_ACTIVITY_TYPE
-                        % assert(m.values{j} == 1,'Activity must be running')
                     case 'event'
                     case 'event_type'
                     otherwise

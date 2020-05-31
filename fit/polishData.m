@@ -1,10 +1,10 @@
-function [Tnew, unitsnew] = polishDataTable(T, units)
-% Polish data table takes a table from createDataTable and performs the
-% following to make it usable:
-% Remove columns
-% Rename columns
-% Validate and fix units
-% Add calculated Pace column
+function [Tnew, unitsnew] = polishData(T, units)
+% polishData table takes a table from processData and performs the
+% following operations to make it usable:
+%   Remove unnecessary or redundant columns
+%   Rename columns to a consistent naming scheme
+%   Validate incoming units and convert to sensible units
+%   Add a calculated Pace column
 
 arguments
     T timetable
