@@ -14,16 +14,10 @@ arguments
     filename (1,:) char {fileExists}
 end
 
-disp(['Reading ' filename])
-
 clear readfitmex
-tic;
 S = readfitmex(filename);
-t = toc;
-disp(['File has ' num2str(numel(S)) ' messages'])
-disp(['Reading took ' num2str(t) 's'])
 
-tic;
+% sort messages into data/metadata
 m = struct('name',{},'fields',{},'units',{},'values',{});
 d = struct('name',{},'fields',{},'units',{},'values',{});
 for i=1:numel(S)
@@ -34,8 +28,6 @@ for i=1:numel(S)
             m(end+1) = S(i);
     end
 end
-t = toc;
-disp(['Processing took ' num2str(t) 's'])
 
 metadata = m;
 data = d;
