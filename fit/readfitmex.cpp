@@ -51,27 +51,27 @@ enum field_data_type {
     double_field,
 };
 
-struct message {
+struct myField {
     std::string name;
-    std::vector<std::string> field_names;
-    std::vector<std::string> field_units;
-    std::vector<field_data_type> field_types;
-    std::vector<std::vector<boost::variant<double, std::string>>> field_values;
+    std::string units;
+    field_data_type type;
+    std::vector<boost::variant<double, std::string>> values;
+};
+
+struct myMessage {
+    std::string name;
+    std::vector<myField> fields;
 };
 
 class MexFunction : public matlab::mex::Function {
 public:
-    std::list<message> messages;
+    std::list<myMessage> messages;
     
     void operator()(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs);
-    void error(std::string const str);
-    void print(std::string const str);
+    void error(std::string const& str);
+    void print(std::string const& str);
     void processMessage(fit::Mesg& mesg);
-    void processField(const fit::FieldBase& field,
-                      std::vector<std::string>& names,
-                      std::vector<std::string>& units,
-                      std::vector<field_data_type>& types,
-                      std::vector<std::vector<boost::variant<double, std::string>>>& values);
+    myField processField(const fit::FieldBase& field);
     field_data_type GetType(const fit::FieldBase& field);
 };
 
@@ -106,6 +106,7 @@ void MexFunction::operator()(matlab::mex::ArgumentList outputs, matlab::mex::Arg
     
     // Open file
     const char* filename = matlab::data::CharArray(inputs[0]).toAscii().c_str();
+//     print("Reading " + std::string(filename) + "\n");
     std::fstream file;
     file.open(filename, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
@@ -115,7 +116,7 @@ void MexFunction::operator()(matlab::mex::ArgumentList outputs, matlab::mex::Arg
         error("FIT file integrity failed.\nFilename: " + std::string(filename));
     }
     
-    // Decode file (Build std::list<message> messages)
+    // Decode file (Build std::list<myMessage> messages)
     try {
         decode.Read(&file, &mesgBroadcaster, &mesgBroadcaster, &listener);
     } catch (const fit::RuntimeException& e) {
@@ -128,46 +129,42 @@ void MexFunction::operator()(matlab::mex::ArgumentList outputs, matlab::mex::Arg
     
     int i=0;
     // Process each message
-    for (message const& m : messages){
-        matlab::data::CellArray field_names = factory.createCellArray({1,m.field_names.size()});
-        matlab::data::CellArray field_units = factory.createCellArray({1,m.field_units.size()});
-        matlab::data::CellArray field_values = factory.createCellArray({1,m.field_values.size()});
+    for (myMessage const& m : messages){
+        matlab::data::CellArray field_names = factory.createCellArray({1,m.fields.size()});
+        matlab::data::CellArray field_units = factory.createCellArray({1,m.fields.size()});
+        matlab::data::CellArray field_values = factory.createCellArray({1,m.fields.size()});
         
         // Process each field
-        for (int f=0; f<m.field_names.size(); f++){
-            field_names[f] = factory.createCharArray(m.field_names[f]);
-            field_units[f] = factory.createCharArray(m.field_units[f]);
+        for (int f=0; f<m.fields.size(); f++){
+            field_names[f] = factory.createCharArray(m.fields[f].name);
+            field_units[f] = factory.createCharArray(m.fields[f].units);
             
             // Process values
-            unsigned int numel = m.field_values[f].size();
+            unsigned int numel = m.fields[f].values.size();
             if (numel == 1){
                 // one string
-                if (m.field_types[f] == string_field){
-                    std::string ss = boost::get<std::string>(m.field_values[f][0]);
-                    field_values[f] = factory.createScalar(ss);
-                    // one double
-                } else if (m.field_types[f] == double_field){
-                    double d = boost::get<double>(m.field_values[f][0]);
-                    field_values[f] = factory.createArray<double>({1,1},{d});
+                if (m.fields[f].type == string_field){
+                    field_values[f] = factory.createScalar(boost::get<std::string>(m.fields[f].values[0]));
+                // one double
+                } else if (m.fields[f].type == double_field){
+                    field_values[f] = factory.createArray<double>({1,1},{boost::get<double>(m.fields[f].values[0])});
                 }
             } else {
                 // many string
-                if (m.field_types[f] == string_field){
+                if (m.fields[f].type == string_field){
                     matlab::data::TypedArray<matlab::data::MATLABString> values = factory.createArray<matlab::data::MATLABString>({1,numel});
                     int v=0;
                     for (auto elem : values){
-                        std::string ss = boost::get<std::string>(m.field_values[f][v]);
-                        elem = ss;
+                        elem = boost::get<std::string>(m.fields[f].values[v]);
                         v++;
                     }
                     field_values[f] = values;
-                    // many double
-                } else if (m.field_types[f] == double_field){
+                // many double
+                } else if (m.fields[f].type == double_field){
                     matlab::data::TypedArray<double> values = factory.createArray<double>({1,numel});
                     int v=0;
                     for (auto& elem : values){
-                        double d = boost::get<double>(m.field_values[f][v]);
-                        elem = d;
+                        elem = boost::get<double>(m.fields[f].values[v]);
                         v++;
                     }
                     field_values[f] = values;
@@ -186,69 +183,67 @@ void MexFunction::operator()(matlab::mex::ArgumentList outputs, matlab::mex::Arg
     
 }
 
-void MexFunction::error(std::string const str) {
+void MexFunction::error(std::string const& str) {
     std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr = getEngine();
     matlab::data::ArrayFactory factory;
     matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({ factory.createScalar(str) }));
 }
 
-void MexFunction::print(std::string const str) {
+void MexFunction::print(std::string const& str) {
     std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr = getEngine();
     matlab::data::ArrayFactory factory;
     matlabPtr->feval(u"fprintf", 0, std::vector<matlab::data::Array>({ factory.createScalar(str) }));
 }
 
 void MexFunction::processMessage(fit::Mesg& mesg){
-    std::vector<std::string> names;
-    std::vector<std::string> units;
-    std::vector<field_data_type> types;
-    std::vector<std::vector<boost::variant<double, std::string>>> values;
+
+    int numFields = mesg.GetNumFields() + mesg.GetNumDevFields();
+    std::vector<myField> fields;//(numFields);
     
     // Process Fields
     for (int i=0; i<mesg.GetNumFields(); i++) {
         fit::Field* field = mesg.GetFieldByIndex(i);
-        processField(*field, names, units, types, values);
+        fields.push_back(processField(*field));
     }
     
     // Process Developer Fields
     if (mesg.GetNumDevFields() > 0) {
-        for (auto devField : mesg.GetDeveloperFields()) {
-            processField(devField, names, units, types, values);
+        for (auto& devField : mesg.GetDeveloperFields()) {
+            fields.push_back(processField(devField));
         }
     }
     
-    message m = {mesg.GetName(), names, units, types, values};
+    myMessage m = {mesg.GetName(), fields};
     messages.push_back(m);
 }
 
-void MexFunction::processField(const fit::FieldBase& field,
-                               std::vector<std::string>& names,
-                               std::vector<std::string>& units,
-                               std::vector<field_data_type>& types,
-                               std::vector<std::vector<boost::variant<double, std::string>>>& values) {
-    // name, units, type
-    names.push_back(field.GetName());
-    units.push_back(field.GetUnits());
+myField MexFunction::processField(const fit::FieldBase& field) {
     field_data_type type = GetType(field);
-    types.push_back(type);
+    
+    // Only runs are supported. If this is another sport, we want to stop
+    // here, which is as early as possible.
+    if (field.GetName() == "sport" && field.GetFLOAT64Value(0) != 1){
+        error("Activity is not a run");
+    }
     
     // values
-    std::vector<boost::variant<double, std::string>> value_list;
+    std::vector<boost::variant<double, std::string>> values;
     switch (type) {
         case double_field:
             for (int i=0; i<field.GetNumValues(); i++){
-                value_list.push_back(field.GetFLOAT64Value(i));
+                values.push_back(field.GetFLOAT64Value(i));
             }
             break;
         case string_field:
             for (int i=0; i<field.GetNumValues(); i++){
                 std::wstring ws(field.GetSTRINGValue(i));
                 std::string ss(ws.begin(), ws.end());
-                value_list.push_back(ss);
+                values.push_back(ss);
             }
             break;
     }
-    values.push_back(value_list);
+    myField f = {field.GetName(), field.GetUnits(), type, values};
+    return f;
 }
 
 field_data_type MexFunction::GetType(const fit::FieldBase& field){
