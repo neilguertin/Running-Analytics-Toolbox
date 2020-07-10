@@ -24,6 +24,10 @@ for i=1:numel(fields)
         
         % Standard fields
         case 'altitude' % remove column
+            assert(strcmp(units{i},'m'),'altitude units must be m.');
+            Tnew.Altitude = T.altitude;
+            unitsnew{inew} = units{i};
+            inew = inew+1;
         case 'cadence'
             if ismember('Cadence',Tnew.Properties.VariableNames)
                 % We've seen the Stryd 'Cadence' field already. Do nothing.
@@ -81,12 +85,24 @@ for i=1:numel(fields)
             inew = inew+1;
         case 'Power'
             assert(strcmp(units{i},'Watts'),'Power units must be Watts.');
-            Tnew.Power = T.('Power');
+            Tnew.Power = T.Power;
             unitsnew{inew} = 'W';
             inew = inew+1;
         case 'Ground Time' % remove column
+            assert(strcmp(units{i},'Milliseconds'),'Air Power units must be Milliseconds.');
+            Tnew.GroundTime = T.('Ground Time');
+            unitsnew{inew} = 'ms';
+            inew = inew+1;
         case 'Leg Spring Stiffness' % remove column
+            assert(strcmp(units{i},'kN/m'),'Leg Spring Stiffness units must be kN/m.');
+            Tnew.LegSpringStiffness = T.('Leg Spring Stiffness');
+            unitsnew{inew} = 'kN/m';
+            inew = inew+1;
         case 'Vertical Oscillation' % remove column
+            assert(strcmp(units{i},'Centimeters'),'Vertical Oscillation units must be Centimeters.');
+            Tnew.VerticalOscillation = T.('Vertical Oscillation');
+            unitsnew{inew} = 'cm';
+            inew = inew+1;
         case 'Cadence'
             assert(strcmp(units{i},'RPM'),'Cadence units must be RPM.');
             if ismember('Cadence',Tnew.Properties.VariableNames)

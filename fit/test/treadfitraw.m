@@ -29,5 +29,9 @@ classdef treadfitraw < matlab.unittest.TestCase
             testcase.verifyEqual(actm3,expm3);
             testcase.verifyEqual(actd3,expd3);
         end
+        
+        function readBikeRide(testcase)
+            testcase.verifyError(@()readfitraw('Bike.fit'),'RAT:NotARun');
+        end
     end
 end

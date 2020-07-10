@@ -68,7 +68,7 @@ public:
     std::list<myMessage> messages;
     
     void operator()(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs);
-    void error(std::string const& str);
+    void error(std::string const& id, std::string const& msg);
     void print(std::string const& str);
     void processMessage(fit::Mesg& mesg);
     myField processField(const fit::FieldBase& field);
@@ -110,17 +110,17 @@ void MexFunction::operator()(matlab::mex::ArgumentList outputs, matlab::mex::Arg
     std::fstream file;
     file.open(filename, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
-        error("Error opening file.\nFilename: " + std::string(filename));
+        error("RAT:CouldNotOpenFile", "Error opening file.\nFilename: " + std::string(filename));
     }
     if (!decode.CheckIntegrity(file)) {
-        error("FIT file integrity failed.\nFilename: " + std::string(filename));
+        error("RAT:IntegrityFailed", "FIT file integrity failed.\nFilename: " + std::string(filename));
     }
     
     // Decode file (Build std::list<myMessage> messages)
     try {
         decode.Read(&file, &mesgBroadcaster, &mesgBroadcaster, &listener);
     } catch (const fit::RuntimeException& e) {
-        error("Error decoding file.\nFilename: " + std::string(filename) + "\nException: " + std::string(e.what()));//e.what());
+        error("RAT:CouldNotDecodeFile", "Error decoding file.\nFilename: " + std::string(filename) + "\nException: " + std::string(e.what()));//e.what());
     }
     
     // Build MATLAB arrays
@@ -183,10 +183,10 @@ void MexFunction::operator()(matlab::mex::ArgumentList outputs, matlab::mex::Arg
     
 }
 
-void MexFunction::error(std::string const& str) {
+void MexFunction::error(std::string const& id, std::string const& msg) {
     std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr = getEngine();
     matlab::data::ArrayFactory factory;
-    matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({ factory.createScalar(str) }));
+    matlabPtr->feval(u"error", 0, std::vector<matlab::data::Array>({ factory.createScalar(id), factory.createScalar(msg) }));
 }
 
 void MexFunction::print(std::string const& str) {
@@ -223,7 +223,7 @@ myField MexFunction::processField(const fit::FieldBase& field) {
     // Only runs are supported. If this is another sport, we want to stop
     // here, which is as early as possible.
     if (field.GetName() == "sport" && field.GetFLOAT64Value(0) != 1){
-        error("Activity is not a run");
+        error("RAT:NotARun","Activity is not a run");
     }
     
     // values
@@ -270,6 +270,6 @@ field_data_type MexFunction::GetType(const fit::FieldBase& field){
             return string_field;
             break;
         default:
-            error("Unsupported field type");
+            error("RAT:UnsupportedFieldType","Unsupported field type");
     }
 }
