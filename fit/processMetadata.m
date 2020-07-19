@@ -187,6 +187,8 @@ for i=1:numel(metadata)
         case 'zones_target' % do nothing
         case 'developer_data_id' % do nothing
         case 'field_description' % do nothing
+        case 'training_file'
+            % TODO
         otherwise
             warning(['Unknown message type: ' m.name])
     end
@@ -197,6 +199,15 @@ assert(seen_session_message,'Must have session message')
 
 % Build lap split times
 split = duration(0,0,0);
+
+if fit.NumLaps ~= numel(fit.Laps)
+    % My Timex watch had a workout mode with preprogrammed laps, and the
+    % lap numbers were messed up. I only used it once, this fixes that one
+    % case. Other cases should be examined more closely.
+    warning('RAT:LapMismatch','NumLaps field does not match number of lap messages')
+    fit.NumLaps = numel(fit.Laps);
+end
+
 for i=1:fit.NumLaps
     lap = fit.Laps(i);
     lap.StartSplit = split;

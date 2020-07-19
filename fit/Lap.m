@@ -13,11 +13,13 @@ classdef Lap < handle
     
     methods
         function disp(obj)
-            fprintf('Lap %d: (%s)\n',obj.LapNumber,obj.Trigger)
-            fprintf('\t%s -> %s\n',obj.StartTime, obj.StopTime)
-            fprintf('\t%s (%s)\n',obj.TimerTime, obj.ElapsedTime)
-            fprintf('\t%s -> %s\n',obj.StartSplit, obj.StopSplit)
-            fprintf('\t%dm\n',obj.Distance)
+            for i=1:numel(obj)
+                fprintf('Lap %d: (%s)\n',obj(i).LapNumber,obj(i).Trigger)
+                fprintf('\t%s -> %s\n',obj(i).StartTime, obj(i).StopTime)
+                fprintf('\t%s (%s)\n',obj(i).TimerTime, obj(i).ElapsedTime)
+                fprintf('\t%s -> %s\n',obj(i).StartSplit, obj(i).StopSplit)
+                fprintf('\t%dm\n',obj(i).Distance)
+            end
         end
     end
 end

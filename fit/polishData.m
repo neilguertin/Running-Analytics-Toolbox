@@ -23,7 +23,7 @@ for i=1:numel(fields)
     switch(fields{i})
         
         % Standard fields
-        case 'altitude' % remove column
+        case 'altitude'
             assert(strcmp(units{i},'m'),'altitude units must be m.');
             Tnew.Altitude = T.altitude;
             unitsnew{inew} = units{i};
@@ -88,17 +88,17 @@ for i=1:numel(fields)
             Tnew.Power = T.Power;
             unitsnew{inew} = 'W';
             inew = inew+1;
-        case 'Ground Time' % remove column
+        case 'Ground Time'
             assert(strcmp(units{i},'Milliseconds'),'Air Power units must be Milliseconds.');
             Tnew.GroundTime = T.('Ground Time');
             unitsnew{inew} = 'ms';
             inew = inew+1;
-        case 'Leg Spring Stiffness' % remove column
+        case 'Leg Spring Stiffness'
             assert(strcmp(units{i},'kN/m'),'Leg Spring Stiffness units must be kN/m.');
             Tnew.LegSpringStiffness = T.('Leg Spring Stiffness');
             unitsnew{inew} = 'kN/m';
             inew = inew+1;
-        case 'Vertical Oscillation' % remove column
+        case 'Vertical Oscillation'
             assert(strcmp(units{i},'Centimeters'),'Vertical Oscillation units must be Centimeters.');
             Tnew.VerticalOscillation = T.('Vertical Oscillation');
             unitsnew{inew} = 'cm';
@@ -115,6 +115,9 @@ for i=1:numel(fields)
                 unitsnew{inew} = 'spm';
                 inew = inew+1;
             end
+            
+        case 'Elevation'
+            % TODO
                 
         % Unknown field
         otherwise
