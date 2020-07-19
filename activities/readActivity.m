@@ -7,19 +7,16 @@ end
 [~,name,ext] = fileparts(fullpath);
 filename = name + ext;
 
-fprintf("Getting activity: %s\n",filename)
-
-
 if registry.hasSeenActivity(filename)
-    fprintf("\tFound activity in registry\n")
+    fprintf("%s: Found activity in registry\n",filename)
 else
     try
         activity = Activity(fullpath);
-        fprintf("\tCreated activity\n");
+        fprintf("%s: Created activity\n",filename);
         registry.registerActivity(filename,activity)
     catch e
         if strcmp(e.identifier,'RAT:NotARun')
-            fprintf("\tActivity is not a run\n")
+            fprintf("%s: Activity is not a run\n",filename)
             registry.registerNonRun(filename);
         else
             rethrow(e)

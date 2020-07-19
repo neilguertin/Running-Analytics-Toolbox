@@ -3,14 +3,19 @@ classdef ActivityRegistry < handle
     
     properties
         registry table
+        numruns double
         nonruns string
     end
     
     
     methods
-        function obj = ActivityRegistry()
-            obj.registry = table('Size',[0 3],'VariableTypes',{'string','string','Activity'},'VariableNames',{'ID','Filename','Activity'});
+        function obj = ActivityRegistry(preallocate)
+            arguments
+                preallocate (1,1) double = 0
+            end
+            obj.registry = table('Size',[preallocate 3],'VariableTypes',{'string','string','Activity'},'VariableNames',{'ID','Filename','Activity'});
             obj.nonruns = string.empty;
+            obj.numruns = 0;
         end
         
         function registerActivity(obj,filename,activityObj)
@@ -22,7 +27,8 @@ classdef ActivityRegistry < handle
             
             activityObj.setID(id);
 
-            obj.registry(end+1,:) = {id,filename,activityObj};
+            obj.registry(obj.numruns+1,:) = {id,filename,activityObj};
+            obj.numruns = obj.numruns+1;
         end
         
         function registerNonRun(obj,filename)
@@ -35,15 +41,50 @@ classdef ActivityRegistry < handle
             tf = tfruns || tfnonruns;
         end
         
-        function activity = getActivity(obj,filename)
-            ind = find(strcmp(filename,obj.registry.Filename));
-            if numel(ind) == 0
-                error('RAT:ActivityNotFound','Could not find activity matching that filename')
-            elseif numel(ind) > 1
-                error('RAT:MultipleActivities','Filename matched more than one activity')
+        function activity = getActivity(obj,filenameORid)
+            arguments
+                obj ActivityRegistry
+                filenameORid (1,1) string
+            end
+            ind = obj.getRow(filenameORid);
+            activity = obj.registry.Activity(ind);
+        end
+        
+        function deleteActivity(obj,filenameORid)
+            arguments
+                obj ActivityRegistry
+                filenameORid (1,1) string
+            end
+            ind = obj.getRow(filenameORid);
+            obj.registry(ind,:) = [];
+            obj.numruns = obj.numruns - 1;
+        end
+            
+    end
+    
+    methods(Access=private)
+        function row = getRow(obj,filenameORid)
+            arguments
+                obj ActivityRegistry
+                filenameORid (1,1) string
+            end
+            
+            if regexp(filenameORid,"a\d{10}") % id
+                id = filenameORid;
+                row = find(strcmp(id,obj.registry.ID));
+            elseif regexp(filenameORid,"\d{10}.fit") % filename
+                filename = filenameORid;
+                row = find(strcmp(filename,obj.registry.Filename));
             else
-                activity = obj.registry.Activity(ind);
+                error('RAT:BadID','Bad ID or filename: %s',filenameORid)
+            end
+            
+            if numel(row) == 0
+                error('RAT:ActivityNotFound','Filename or ID did not match any activity: %s',filenameORid)
+            elseif numel(row) > 1
+                error('RAT:MultipleActivities','Filename or ID matched more than one activity: %s',filenameORid)
             end
         end
     end
+
 end
