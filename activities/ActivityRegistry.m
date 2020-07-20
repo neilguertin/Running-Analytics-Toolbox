@@ -59,7 +59,72 @@ classdef ActivityRegistry < handle
             obj.registry(ind,:) = [];
             obj.numruns = obj.numruns - 1;
         end
+        
+        function readActivities(obj,directory)
+            arguments
+                obj ActivityRegistry
+                directory (1,1) string
+            end
             
+            d = dir(fullfile(directory,"*.fit"));
+            
+            numPrevSeen = 0;
+            numSuccess = 0;
+            numNotRuns = 0;
+            
+            % read activities
+            for i=1:numel(d)
+                filename = d(i).name;
+                status = readActivity(obj,fullfile(directory,filename));
+                switch(status)
+                    case 0
+                        numPrevSeen = numPrevSeen+1;
+                    case 1
+                        numSuccess = numSuccess+1;
+                    case 2
+                        numNotRuns = numNotRuns+1;
+                end
+            end
+            fprintf('Read %d files\n',numel(d))
+            fprintf('  %d Previously seen\n',numPrevSeen)
+            fprintf('  %d Successfully read\n',numSuccess)
+            fprintf('  %d Not runs\n',numNotRuns)
+            
+        end
+        
+        function status = readActivity(obj,fullpath)
+            % status: 0 Previously seen
+            %         1 Successful read
+            %         2 Not a run
+            arguments
+                obj (1,1) ActivityRegistry
+                fullpath (1,1) string
+            end
+            
+            [~,name,ext] = fileparts(fullpath);
+            filename = name + ext;
+            
+            if obj.hasSeenActivity(filename)
+%                 fprintf("%s: Found activity in registry\n",filename)
+                status = 0;
+            else
+                try
+                    activity = Activity(fullpath);
+                    fprintf("%s: Created activity\n",filename);
+                    obj.registerActivity(filename,activity)
+                    status = 1;
+                catch e
+                    if strcmp(e.identifier,'RAT:NotARun')
+                        fprintf("%s: Activity is not a run\n",filename)
+                        obj.registerNonRun(filename);
+                        status = 2;
+                    else
+                        rethrow(e)
+                    end
+                end
+            end
+        end
+        
     end
     
     methods(Access=private)

@@ -2,7 +2,6 @@ classdef Activity < handle
     properties
         ID string %aYYYYMMDDNN
         Title string
-        Sport
         Stress
         Tags
 
